@@ -1,0 +1,21 @@
+@startuml GetAvailableFilters
+actor Client
+participant "ProductRoutes" as Routes
+participant "ProductController" as Controller
+participant "ProductService" as Service
+participant "Prisma" as DB
+
+Client -> Routes : GET /api/v1/products/attribute?category_ids=...
+Routes -> Controller : getAvailableFilters(req, res)
+Controller -> Service : getAvailableFilters({categoryIds})
+Service -> DB : findMany Attribute (where category_id in categoryIds, \ninclude attribute_values)
+DB --> Service : attributes
+alt attributes.length === 0
+    Service --> Controller : throw NotFoundException
+    Controller --> Client : 404 Not Found
+else
+    Service -> Service : Map attributes to desired filter format
+    Service --> Controller : formattedFilters
+    Controller -> Client : 200 OK { success: true, data: formattedFilters }
+end
+@enduml

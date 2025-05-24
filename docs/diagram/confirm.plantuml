@@ -1,0 +1,22 @@
+@startuml ConfirmOrder
+actor Client
+participant "OrderRoutes" as Routes
+participant "OrderController" as Controller
+participant "OrderService" as Service
+participant "Prisma" as DB
+
+Client -> Routes : GET /api/v1/orders/confirm/{orderId}
+Routes -> Controller : confirmOrder(req, res)
+Controller -> Service : confirmOrder(req.params.orderId)
+Service -> DB : findUnique Order (orderId)
+DB --> Service : order
+alt order not found or status not 'PROCESSING'
+    Service --> Controller : throw Error
+    Controller --> Client : 4xx Error
+else
+    Service -> DB : update Order (order_status: 'PENDING')
+    DB --> Service : updatedOrder
+    Service --> Controller : { orderId, status: 'CONFIRMED_AWAITING_PAYMENT' }
+    Controller -> Client : 200 OK { orderId, status }
+end
+@enduml

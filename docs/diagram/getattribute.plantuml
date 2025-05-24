@@ -1,0 +1,22 @@
+@startuml FilterProducts
+actor Client
+participant "ProductRoutes" as Routes
+participant "ProductController" as Controller
+participant "ProductService" as Service
+participant "Prisma" as DB
+
+Client -> Routes : GET /api/v1/products/filter?categoryIds=...&attributeValueIds=...&minPrice=...&maxPrice=...
+Routes -> Controller : filterProducts(req, res)
+Controller -> Service : filterProducts({categoryIds, attributeValueIds, minPrice, maxPrice})
+Service -> DB : findMany ProductVariant (build where clause based on filters)
+DB --> Service : variants
+Service -> Service : Filter variants by categoryIds (if provided)
+Service -> Service : Map to unique products
+alt uniqueProducts.length === 0
+    Service --> Controller : throw NotFoundException
+    Controller --> Client : 404 Not Found
+else
+    Service --> Controller : uniqueProducts
+    Controller -> Client : 200 OK { success: true, data: uniqueProducts }
+end
+@enduml

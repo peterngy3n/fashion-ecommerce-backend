@@ -1,0 +1,20 @@
+@startuml GetProductsByCategories
+actor Client
+participant "ProductRoutes" as Routes
+participant "ProductController" as Controller
+participant "ProductService" as Service
+participant "Prisma" as DB
+
+Client -> Routes : POST /api/v1/products/category (body: {categoryIds})
+Routes -> Controller : getProductsByCategories(req, res)
+Controller -> Service : getProductByCategory(req.body.categoryIds)
+Service -> DB : findMany Product (where category_id in categoryIds, include variants, attributes)
+DB --> Service : products
+alt products.length === 0
+    Service --> Controller : throw NotFoundException
+    Controller --> Client : 404 Not Found
+else
+    Service --> Controller : products
+    Controller -> Client : 200 OK { success: true, data: products }
+end
+@enduml

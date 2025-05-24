@@ -1,4 +1,7 @@
 # Fashion Ecommerce Backend
+## Đặc tả API
+- Code yaml đặc tả API nằm ở docs/api.specification.yaml
+- Anh/chị vui lòng copy file này vào https://editor.swagger.io/ để xem được đặc tả usecase
 
 Backend project sử dụng Express, Prisma, MySQL và Docker.
 
@@ -6,7 +9,6 @@ Backend project sử dụng Express, Prisma, MySQL và Docker.
 
 * Docker & Docker Compose
 * Node.js (>= 18.x) nếu chạy ngoài Docker
-* File dữ liệu MySQL đã export: `mysql-dump.tar`
 
 ## 📁 Cấu trúc thư mục
 
@@ -24,10 +26,10 @@ Backend project sử dụng Express, Prisma, MySQL và Docker.
 
 ## ⚙️ Thiết lập & chạy
 
-### 1. Load file image database từ .tar
+### 1. Load file image database từ .tar (file .tar và .env ở folder Google drive)
 
 ```bash
-docker load < mysql-dump.tar
+docker load < ecommerce.tar
 ```
 
 ### 2. Chạy project

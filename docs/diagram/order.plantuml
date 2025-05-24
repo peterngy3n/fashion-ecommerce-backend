@@ -1,0 +1,39 @@
+@startuml CreateOrder
+actor Client
+participant "OrderRoutes" as Routes
+participant "OrderController" as Controller
+participant "OrderService" as Service
+participant "Prisma" as DB
+participant "MailerService" as Mailer
+
+Client -> Routes : POST /api/v1/orders (data)
+Routes -> Controller : createOrder(req, res)
+Controller -> Service : createOrder(req.body)
+Service -> DB : Start Transaction
+loop for each item in items
+    Service -> DB : findFirst ProductInventory (variant_id)
+    DB --> Service : inventory
+    alt inventory not found or insufficient
+        Service --> Controller : throw Error
+        Controller --> Client : 4xx Error
+    else
+        Service -> DB : updateMany ProductInventory (optimistic lock)
+        DB --> Service : updateResult
+        alt update.count === 0
+             Service --> Controller : throw Error (Inventory conflict)
+             Controller --> Client : 4xx Error
+        else
+            Service -> DB : create InventoryReservation
+            DB --> Service : reservationCreated
+        end
+    end
+end
+Service -> DB : create Order (order_items)
+DB --> Service : order
+Service -> Mailer : sendConfirmationEmail(email, order.id)
+Mailer --> Service : emailSent
+Service --> DB : Commit Transaction
+DB --> Service : transactionResult
+Service --> Controller : { orderId, status: 'CREATED' }
+Controller -> Client : 201 OK { orderId, status }
+@enduml
