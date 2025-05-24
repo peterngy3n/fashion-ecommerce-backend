@@ -1,0 +1,451 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password_hash     String
+  first_name        String?
+  last_name         String?
+  phone             String?
+  status            UserStatus @default(ACTIVE)
+  email_verified_at DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  user_roles        UserRole[]
+  email_logs        EmailLog[]
+  blacklist_tokens  BlacklistToken[]
+  created_products  Product[] @relation("ProductCreator")
+  orders            Order[]
+  discount_usage    DiscountUsage[]
+  shopping_carts    ShoppingCart[]
+
+  @@map("users")
+}
+
+model Role {
+  name        String   @id
+  description String?
+  created_at  DateTime @default(now())
+
+  // Relations
+  user_roles       UserRole[]
+  role_permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  user_id     String
+  role_id     String
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [role_id], references: [name], onDelete: Cascade)
+
+  @@id([user_id, role_id])
+  @@map("user_roles")
+}
+
+model Permission {
+  name        String @id
+  description String?
+  resource    String
+  action      String
+
+  // Relations
+  role_permissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  role_id       String
+  permission_id String
+
+  // Relations
+  role       Role       @relation(fields: [role_id], references: [name], onDelete: Cascade)
+  permission Permission @relation(fields: [permission_id], references: [name], onDelete: Cascade)
+
+  @@id([role_id, permission_id])
+  @@map("role_permissions")
+}
+
+model BlacklistToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  user_id    String
+  revoked_at DateTime @default(now())
+  expires_at DateTime
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("blacklist_tokens")
+}
+
+model EmailTemplate {
+  id           String  @id @default(uuid())
+  name         String  @unique
+  subject      String
+  html_content String  @db.Text
+  text_content String  @db.Text
+  is_active    Boolean @default(true)
+
+  @@map("email_templates")
+}
+
+model EmailLog {
+  id               String        @id @default(uuid())
+  user_id          String
+  template_name    String
+  recipient_email  String
+  subject          String
+  status           EmailStatus   @default(PENDING)
+  error_message    String?       @db.Text
+  sent_at          DateTime?
+  created_at       DateTime      @default(now())
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("email_logs")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  image_url   String?
+  sort_order  Int      @default(0)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  products   Product[]
+  attributes Attribute[]
+
+  @@map("categories")
+}
+
+model Attribute {
+  id          String @id @default(uuid())
+  name        String
+  category_id String
+
+  // Relations
+  category         Category         @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  attribute_values AttributeValue[]
+
+  @@map("attributes")
+}
+
+model AttributeValue {
+  id           String @id @default(uuid())
+  attribute_id String
+  value        String
+
+  // Relations
+  attribute                 Attribute                 @relation(fields: [attribute_id], references: [id], onDelete: Cascade)
+  variant_attribute_values  VariantAttributeValue[]
+
+  @@map("attribute_values")
+}
+
+model Product {
+  id                   String   @id @default(uuid())
+  sku_code             String
+  price                Decimal  @db.Decimal(10, 2)
+  name                 String
+  slug                 String   @unique
+  description          String?  @db.Text
+  thumb_url            String?
+  base_price           Decimal  @db.Decimal(10, 2)
+  category_id          String
+  discount_percentage  Decimal  @default(0) @db.Decimal(5, 2)
+  is_active            Boolean  @default(true)
+  created_by           String
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  // Relations
+  category         Category          @relation(fields: [category_id], references: [id])
+  creator          User              @relation("ProductCreator", fields: [created_by], references: [id])
+  product_variants ProductVariant[]
+  cart_items       CartItem[]
+
+  @@map("products")
+}
+
+model ProductVariant {
+  id         String   @id @default(uuid())
+  product_id String
+  sku_code   String
+  price      Decimal  @db.Decimal(10, 2)
+  quantity   Int
+  image_url  String?
+  created_at DateTime @default(now())
+
+  // Relations
+  product                    Product                   @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  variant_attribute_values   VariantAttributeValue[]
+  product_inventory          ProductInventory[]
+  inventory_reservations     InventoryReservation[]
+  order_items                OrderItem[]
+
+  @@map("product_variants")
+}
+
+model VariantAttributeValue {
+  product_variant_id   String
+  attribute_value_id   String
+
+  // Relations
+  product_variant  ProductVariant @relation(fields: [product_variant_id], references: [id], onDelete: Cascade)
+  attribute_value  AttributeValue @relation(fields: [attribute_value_id], references: [id], onDelete: Cascade)
+
+  @@id([product_variant_id, attribute_value_id])
+  @@map("variant_attribute_value")
+}
+
+model ProductInventory {
+  id                   String   @id @default(uuid())
+  product_variant_id   String
+  store_id             String
+  quantity             Int
+  reserved_quantity    Int      @default(0)
+  cost_price           Decimal  @db.Decimal(10, 2)
+  last_updated         DateTime @default(now())
+  version              Int      @default(1)
+
+  // Relations
+  product_variant ProductVariant @relation(fields: [product_variant_id], references: [id], onDelete: Cascade)
+  store           Store          @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@unique([product_variant_id, store_id])
+  @@map("product_inventory")
+}
+
+model Store {
+  id         String   @id @default(uuid())
+  name       String
+  code       String   @unique
+  address    String
+  city       String
+  district   String
+  phone      String?
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  // Relations
+  product_inventory      ProductInventory[]
+  inventory_reservations InventoryReservation[]
+
+  @@map("stores")
+}
+
+model Image {
+  id          String   @id @default(uuid())
+  url         String
+  productId   String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("images")
+}
+
+model InventoryReservation {
+  id                 String   @id @default(uuid())
+  product_variant_id String
+  store_id           String
+  quantity           Int
+  reservation_type   String
+  reference_id       String
+  expires_at         DateTime
+  created_at         DateTime @default(now())
+
+  // Relations
+  product_variant ProductVariant @relation(fields: [product_variant_id], references: [id], onDelete: Cascade)
+  store           Store          @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@map("inventory_reservations")
+}
+
+model Order {
+  id               String        @id @default(uuid())
+  order_number     String        @unique
+  user_id          String
+  subtotal         Decimal       @db.Decimal(10, 2)
+  shipping_fee     Decimal       @db.Decimal(10, 2)
+  discount_amount  Decimal       @default(0) @db.Decimal(10, 2)
+  total_amount     Decimal       @db.Decimal(10, 2)
+  shipping_address Json
+  billing_address  Json
+  payment_method   String
+  payment_status   PaymentStatus @default(PENDING)
+  payment_reference String?
+  notes            String?       @db.Text
+  order_status     OrderStatus   @default(PENDING)
+  created_at       DateTime      @default(now())
+  updated_at       DateTime      @updatedAt
+  version          Int           @default(1)
+
+  // Relations
+  user            User            @relation(fields: [user_id], references: [id])
+  order_items     OrderItem[]
+  order_discounts OrderDiscount[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id                String  @id @default(uuid())
+  order_id          String
+  product_variant_id String
+  product_name      String
+  product_sku       String
+  quantity          Int
+  unit_price        Decimal @db.Decimal(10, 2)
+  discount_amount   Decimal @default(0) @db.Decimal(10, 2)
+  total_price       Decimal @db.Decimal(10, 2)
+
+  // Relations
+  order           Order          @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product_variant ProductVariant @relation(fields: [product_variant_id], references: [id])
+
+  @@map("order_items")
+}
+
+model OrderDiscount {
+  id                String   @id @default(uuid())
+  order_id          String
+  discount_code_id  String
+  discount_amount   Decimal  @db.Decimal(10, 2)
+  applied_at        DateTime @default(now())
+
+  // Relations
+  order         Order        @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  discount_code DiscountCode @relation(fields: [discount_code_id], references: [id])
+
+  @@map("order_discounts")
+}
+
+model DiscountCode {
+  id                     String       @id @default(uuid())
+  code                   String       @unique
+  name                   String
+  discount_type          DiscountType
+  value                  Decimal      @db.Decimal(10, 2)
+  max_discount_amount    Decimal?     @db.Decimal(10, 2)
+  usage_limit            Int?
+  used_count             Int          @default(0)
+  max_uses_per_user      Int?
+  valid_from             DateTime
+  valid_until            DateTime
+  applicable_type        Json?
+  applicable_categories  Json?
+  is_active              Boolean      @default(true)
+  created_at             DateTime     @default(now())
+
+  // Relations
+  order_discounts OrderDiscount[]
+  discount_usage  DiscountUsage[]
+
+  @@map("discount_codes")
+}
+
+model DiscountUsage {
+  id          String   @id @default(uuid())
+  discount_id String
+  user_id     String
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+
+  // Relations
+  discount_code DiscountCode @relation(fields: [discount_id], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([discount_id, user_id])
+  @@map("discount_usage")
+}
+
+model ShoppingCart {
+  id         String   @id @default(uuid())
+  user_id    String
+  session_id String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  user       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  cart_items CartItem[]
+
+  @@map("shopping_carts")
+}
+
+model CartItem {
+  id                 String   @id @default(uuid())
+  cart_id            String
+  product_id         String
+  quantity           Int
+  unit_price         Decimal  @db.Decimal(10, 2)
+  product_attributes Json?
+  added_at           DateTime @default(now())
+
+  // Relations
+  cart    ShoppingCart @relation(fields: [cart_id], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [product_id], references: [id])
+
+  @@map("cart_items")
+}
+
+// Enums
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+  PENDING
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  DELIVERED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_SHIPPING
+}
