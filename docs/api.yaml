@@ -1,0 +1,423 @@
+info:
+  description: API for handling product categories, product searches, orders, and
+    payments.
+  title: E-Commerce API
+  version: 1.0.0
+openapi: 3.0.0
+paths:
+  /api/v1/categories:
+    get:
+      tags:
+        - Category
+      operationId: getCategories
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                data:
+                - description: Pant and shirt
+                  id: 0ca538b0-cdaf-4c88-96f7-411a8908bcbc
+                  name: Clothes
+                  slug: clothes
+                  image: https://res.cloudinary.com/demo/image/upload/v1700000000/clothes-cate.jpg
+                  sort_order: 1
+                  is_active: true
+                - description: Shoes
+                  id: b2e4fd50-835c-43af-8c1f-71f3d7829ab9
+                  name: Shoes
+                  slug: shoes
+                  image: https://res.cloudinary.com/demo/image/upload/v1700000000/shoe-cate.jpg
+                  sort_order: 1
+                  is_active: true
+                status: success
+              schema:
+                properties:
+                  data:
+                    items:
+                      properties:
+                        id:
+                          description: Category's ID
+                          format: string
+                          type: string
+                        name:
+                          description: Category name
+                          type: string  
+                        description:
+                          description: Category description
+                          type: string
+                        slug:
+                          type: string
+                        image:
+                          description: Image url
+                          type: string
+                        sort_order:
+                          type: string
+                        is_active:
+                          description: Category's status
+                          type: boolean
+                      type: object
+                    type: array
+                type: object
+          description: List of categories fetched successfully
+        '500':
+          description: Internal server error
+        '404':
+          description: System has been not exists product category 
+      summary: Fetches a list of all product categories
+      
+  /api/v1/products:
+    get:
+      tags:
+        - Product
+      operationId: getProducts
+      parameters:
+      - in: query
+        name: query
+        required: false
+        schema:
+          example: Smartphone
+          type: string
+      - in: query
+        name: categoryId
+        schema:
+          example: b2e4fd50-835c-43af-8c1f-71f3d7829ab9
+          type: string
+      - in: query
+        name: priceMin
+        required: false
+        schema:
+          example: 500
+          type: number
+      - in: query
+        name: priceMax
+        required: false
+        schema:
+          example: 1500
+          type: number
+      - in: query
+        name: brand
+        required: false
+        schema:
+          example: Samsung
+          type: string
+      - in: query
+        name: offset
+        required: false
+        schema:
+          example: 1
+          type: integer
+      - in: query
+        name: limit
+        required: false
+        schema:
+          example: 10
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                data:
+                - id: "fa23bc45-1234-4a56-b789-cdef12345678"
+                  sku_code: "SHOE001"
+                  name: "Sneaker Street X"
+                  slug: "sneaker-street-x"
+                  description: "Modern sneakers with breathable fabric and cushioned sole."
+                  thumb_url: "https://res.cloudinary.com/demo/image/upload/v1700000003/products/sneaker.jpg"
+                  price: 89.99
+                  base_price: 119.99
+                  discount_percentage: 25.0
+                  quantity: 50
+                  category_id: "cat-1a2b3c4d-shoes"
+                  is_active: true
+                  created_by: "user-001"
+                  created_at: "2025-05-10T09:00:00Z"
+                  updated_at: "2025-05-20T10:00:00Z"
+              
+                - id: "cd34ef56-7890-4b12-bcde-9876543210ab"
+                  sku_code: "JACKET101"
+                  name: "Denim Jacket Classic"
+                  slug: "denim-jacket-classic"
+                  description: "Stylish unisex denim jacket for all seasons."
+                  thumb_url: "https://res.cloudinary.com/demo/image/upload/v1700000004/products/jacket.jpg"
+                  price: 59.99
+                  base_price: 79.99
+                  discount_percentage: 25.0
+                  quantity: 35
+                  category_id: "cat-5e6f7g8h-jackets"
+                  is_active: true
+                  created_by: "user-002"
+                  created_at: "2025-05-12T14:30:00Z"
+                  updated_at: "2025-05-21T08:45:00Z"
+              
+                - id: "ef45gh67-3210-4cde-90ab-abcdefabcdef"
+                  sku_code: "TROUSER222"
+                  name: "Slim Fit Chinos"
+                  slug: "slim-fit-chinos"
+                  description: "Comfortable slim fit chinos perfect for office and casual wear."
+                  thumb_url: "https://res.cloudinary.com/demo/image/upload/v1700000005/products/chinos.jpg"
+                  price: 44.90
+                  base_price: 59.90
+                  discount_percentage: 25.0
+                  quantity: 80
+                  category_id: "cat-9i0j1k2l-pants"
+                  is_active: true
+                  created_by: "user-003"
+                  created_at: "2025-05-15T11:15:00Z"
+                  updated_at: "2025-05-23T17:20:00Z"
+                status: success
+              schema:
+                properties:
+                  data:
+                    items:
+                      properties:
+                        id:
+                          description: Product's ID
+                          type: string
+                          format: uuid
+                          example: "a12b34c5-d678-90e1-f234-567890abcdef"
+                    
+                        sku_code:
+                          description: Stock Keeping Unit (SKU) code
+                          type: string
+                          example: "SKU12345"
+                    
+                        name:
+                          description: Product name
+                          type: string
+                          example: "Wireless Headphones"
+                    
+                        slug:
+                          description: Unique slug for product URL
+                          type: string
+                          example: "wireless-headphones"
+                    
+                        description:
+                          description: Product description
+                          type: string
+                          nullable: true
+                          example: "High-quality wireless headphones with noise cancellation."
+                    
+                        thumb_url:
+                          description: URL of product thumbnail image
+                          type: string
+                          nullable: true
+                          example: "https://res.cloudinary.com/demo/image/upload/v1700000001/products/headphones.jpg"
+                    
+                        price:
+                          description: Final price after discount
+                          type: number
+                          format: float
+                          example: 199.99
+                    
+                        base_price:
+                          description: Original base price before discount
+                          type: number
+                          format: float
+                          example: 249.99
+                    
+                        discount_percentage:
+                          description: Discount percentage applied to product
+                          type: number
+                          format: float
+                          example: 20.0
+                    
+                        quantity:
+                          description: Product quantity in stock
+                          type: integer
+                          format: int32
+                          example: 120
+                    
+                        category_id:
+                          description: ID of the category this product belongs to
+                          type: string
+                          format: uuid
+                          example: "b89c21f4-a777-40ee-b1f0-ec8c020acade"
+                    
+                        is_active:
+                          description: Whether the product is currently active and visible
+                          type: boolean
+                          example: true
+                    
+                        created_by:
+                          description: ID of the user who created the product
+                          type: string
+                          format: uuid
+                          example: "c45b7de2-ff01-11ec-b939-0242ac120002"
+                    
+                        created_at:
+                          description: Product creation timestamp
+                          type: string
+                          format: date-time
+                          example: "2025-05-20T12:34:56Z"
+                    
+                        updated_at:
+                          description: Last update timestamp of the product
+                          type: string
+                          format: date-time
+                          example: "2025-05-22T09:00:00Z"
+                      type: object
+                    type: array
+                  status:
+                    type: string
+                type: object
+          description: List of products fetched successfully
+        '404':
+          description: Category not found
+        '500':
+          description: Internal server error
+      summary: Fetches a list of products search text and many type of filters
+  /api/v1/orders:
+    post:
+      tags:
+        - Order
+      operationId: createOrder
+      requestBody:
+        content:
+          application/json:
+            example:
+              items:
+              - productId: 101
+                quantity: 2
+              - productId: 102
+                quantity: 1
+              shippingAddress:
+                addressLine1: 123 Main St
+                addressLine2: Apt 101
+                city: Sample City
+                country: Country
+                postalCode: '12345'
+                state: Sample State
+              discounts:
+                - Discount Code 1
+                - Discount Code 2
+              userId: 123
+            schema:
+              properties:
+                items:
+                  description: List of products in the order
+                  items:
+                    properties:
+                      productId:
+                        description: Product ID
+                        type: integer
+                      quantity:
+                        description: Product quantity
+                        type: integer
+                    type: object
+                  type: array
+                shippingAddress:
+                  description: Shipping address details
+                  properties:
+                    addressLine1:
+                      description: Street address
+                      type: string
+                    addressLine2:
+                      description: Apartment or suite number
+                      type: string
+                    city:
+                      description: City
+                      type: string
+                    country:
+                      description: Country
+                      type: string
+                    postalCode:
+                      description: Postal code
+                      type: string
+                    state:
+                      description: State
+                      type: string
+                  type: object
+                discounts:
+                  description: Discount code applied for order
+                  type: array
+                  items:
+                    type: string
+                userId:
+                  description: User ID
+                  type: integer
+              type: object
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              example:
+                data:
+                  orderId: 9876
+                  paymentUrl: https://thirdparty.com/payment?orderId=9876
+                  totalAmount: 2199.97
+                status: success
+              schema:
+                properties:
+                  data:
+                    properties:
+                      orderId:
+                        description: Order ID
+                        format: int32
+                        type: integer
+                      paymentUrl:
+                        description: Payment URL from third-party financial provider
+                        type: string
+                      totalAmount:
+                        description: Total amount of the order
+                        format: float
+                        type: number
+                    type: object
+                  status:
+                    type: string
+                type: object
+          description: Order created successfully
+        '400':
+          description: Invalid input
+        '500':
+          description: Internal server error
+      summary: Create a new order and return payment url from third-party financial provider
+  /api/v1/orders/{orderId}/checkout:
+    post:
+      tags:
+        - Order
+      summary: Complete the order after payment is finished
+      operationId: completeOrder
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            description: The ID of the order to complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentStatus:
+                  type: string
+                  description: Payment status (e.g., "success", "failure")
+                paymentTransactionId:
+                  type: string
+                  description: The transaction ID from the third party financial provider
+            example:
+              paymentStatus: "success"
+              paymentTransactionId: "xyz-12345-abc"
+      responses:
+        '200':
+          description: Order successfully completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Invalid input
+        '404':
+          description: Order not found
+        '500':
+          description: Internal server error
